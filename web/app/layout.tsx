@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WhiteMapWalk",
-  description: "Explore the world with WhiteMapWalk",
+  title: "TSUBUSHIGOTO",
+  description: "Manage your interests and plans like tasks.",
 };
 
 export default function RootLayout({
