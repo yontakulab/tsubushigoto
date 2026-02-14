@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  tsubu_service:
+    build: .
+    container_name: tsubu_container
+    ports:
+      - '3007:3000'
+    volumes:
+      - ~/.ssh:/home/node/.ssh:ro # userがnodeなので
+      - ~/.gitconfig:/home/node/.gitconfig:ro # userがnodeなので
+      - ..:/tsubu:cached
+    working_dir: /tsubu
+    stdin_open: true
+    tty: true
+    user: '1000:1003'

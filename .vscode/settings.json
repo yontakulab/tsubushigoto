@@ -1,0 +1,73 @@
+{
+  "editor.cursorBlinking": "solid",
+  "css.lint.unknownAtRules": "ignore",
+  "workbench.editor.closeEmptyGroups": false,
+  "workbench.editor.enablePreviewFromQuickOpen": true,
+  "breadcrumbs.enabled": true,
+  "editor.autoClosingBrackets": "never",
+  "workbench.editor.enablePreview": false,
+  "explorer.autoReveal": false,
+  "workbench.colorCustomizations": {
+    "titleBar.activeBackground": "#12372A",
+    "titleBar.border": "#12372A",
+    "titleBar.activeForeground": "#FBFADA",
+    "titleBar.inactiveBackground": "#36554a",
+    "titleBar.inactiveForeground": "#fcfbe0",
+    "tab.activeBackground": "#437505"
+  },
+  // 非表示設定 --------------------------
+  "files.exclude": {
+    "node_modules": false,
+    ".next": false,
+    ".vercelignore": false,
+    ".gitignore": false,
+    ".devcontainer": false,
+    "public": false,
+    "next-env.d.ts": false,
+    "package.json": false,
+    "package-lock.json": false,
+    "postcss.config.mjs": false,
+    "tailwind.config.ts": false,
+    "tsconfig.json": false,
+    "next.config.ts": false,
+    "app/.next": false,
+    "components.json": false,
+    ".eslintrc.js": false,
+    ".prettierrc": false,
+    "next-intl.config.js": false,
+    "middleware.ts": false,
+    "tailwind.config.js": false
+  },
+  // フォーマット設定 ------------------------
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  // TypeScript / JavaScript にも同様に適用
+  "[typescript]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[javascript]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[typescriptreact]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[javascriptreact]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  // Prettier を使っている場合（自動で選ばれるように）
+  //"editor.defaultFormatter": "esbenp.prettier-vscode",
+  // 保存時に eslint も走らせたい場合（任意）
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "git.ignoreLimitWarning": true
+  // ---------------------------------------
+}

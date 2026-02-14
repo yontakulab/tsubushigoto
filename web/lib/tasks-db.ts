@@ -1,0 +1,121 @@
+export type TaskItem = {
+  id: string;
+  title: string;
+  caption: string;
+  memo: string;
+  link: string;
+  startDate: string;
+  endDate: string;
+  imageBlob: Blob | null;
+  imageUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+  completed: boolean;
+};
+
+const DB_NAME = "tsubushigoto-db";
+const DB_VERSION = 1;
+const STORE_NAME = "tasks";
+
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = () => reject(request.error);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      }
+    };
+
+    request.onsuccess = () => resolve(request.result);
+  });
+}
+
+function runTransaction<T>(
+  mode: IDBTransactionMode,
+  execute: (store: IDBObjectStore, done: (value: T) => void) => void,
+): Promise<T> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const db = await openDb();
+      const tx = db.transaction(STORE_NAME, mode);
+      const store = tx.objectStore(STORE_NAME);
+
+      tx.onerror = () => reject(tx.error);
+      tx.oncomplete = () => db.close();
+
+      execute(store, resolve);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+export function createTaskDraft(id?: string): TaskItem {
+  const now = new Date().toISOString();
+  return {
+    id: id ?? crypto.randomUUID(),
+    title: "",
+    caption: "",
+    memo: "",
+    link: "",
+    startDate: "",
+    endDate: "",
+    imageBlob: null,
+    imageUrl: "",
+    createdAt: now,
+    updatedAt: now,
+    completed: false,
+  };
+}
+
+export function getAllTasks(): Promise<TaskItem[]> {
+  return runTransaction<TaskItem[]>("readonly", (store, done) => {
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const toSortTime = (task: TaskItem) => {
+        if (task.startDate) {
+          const startTime = new Date(`${task.startDate}T00:00:00`).getTime();
+          if (!Number.isNaN(startTime)) {
+            return startTime;
+          }
+        }
+        return new Date(task.createdAt).getTime();
+      };
+
+      const tasks = (request.result as TaskItem[]).sort(
+        (a, b) => toSortTime(a) - toSortTime(b),
+      );
+      done(tasks);
+    };
+  });
+}
+
+export function getTaskById(id: string): Promise<TaskItem | undefined> {
+  return runTransaction<TaskItem | undefined>("readonly", (store, done) => {
+    const request = store.get(id);
+    request.onsuccess = () => done(request.result as TaskItem | undefined);
+  });
+}
+
+export function upsertTask(task: TaskItem): Promise<TaskItem> {
+  const nextTask = {
+    ...task,
+    updatedAt: new Date().toISOString(),
+  };
+
+  return runTransaction<TaskItem>("readwrite", (store, done) => {
+    const request = store.put(nextTask);
+    request.onsuccess = () => done(nextTask);
+  });
+}
+
+export function deleteTaskById(id: string): Promise<void> {
+  return runTransaction<void>("readwrite", (store, done) => {
+    const request = store.delete(id);
+    request.onsuccess = () => done(undefined);
+  });
+}
