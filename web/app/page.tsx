@@ -259,14 +259,9 @@ export default function Home() {
     return allTasks;
   }, []);
 
-  const handleReload = async () => {
+  const handleReload = () => {
     setIsTopMenuOpen(false);
-
-    try {
-      await refreshTasks();
-    } catch {
-      showToast("再読み込みに失敗しました", "error");
-    }
+    window.location.reload();
   };
 
   const handleExport = async () => {
@@ -379,7 +374,7 @@ export default function Home() {
         importedCount += 1;
       }
 
-      const latestTasks = await refreshTasks();
+      await refreshTasks();
       showToast(
         importedCount > 0
           ? `インポートしました`
