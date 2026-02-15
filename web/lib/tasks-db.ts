@@ -17,21 +17,35 @@ const DB_NAME = "tsubushigoto-db";
 const DB_VERSION = 1;
 const STORE_NAME = "tasks";
 
+let dbPromise: Promise<IDBDatabase> | null = null;
+const taskCache = new Map<string, TaskItem>();
+
 function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+  if (!dbPromise) {
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-    request.onerror = () => reject(request.error);
+      request.onerror = () => reject(request.error);
 
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id" });
-      }
-    };
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: "id" });
+        }
+      };
 
-    request.onsuccess = () => resolve(request.result);
-  });
+      request.onsuccess = () => {
+        const db = request.result;
+        db.onversionchange = () => {
+          db.close();
+          dbPromise = null;
+        };
+        resolve(db);
+      };
+    });
+  }
+
+  return dbPromise;
 }
 
 function runTransaction<T>(
@@ -45,7 +59,6 @@ function runTransaction<T>(
       const store = tx.objectStore(STORE_NAME);
 
       tx.onerror = () => reject(tx.error);
-      tx.oncomplete = () => db.close();
 
       execute(store, resolve);
     } catch (error) {
@@ -89,15 +102,36 @@ export function getAllTasks(): Promise<TaskItem[]> {
       const tasks = (request.result as TaskItem[]).sort(
         (a, b) => toSortTime(a) - toSortTime(b),
       );
+
+      taskCache.clear();
+      for (const task of tasks) {
+        taskCache.set(task.id, task);
+      }
+
       done(tasks);
     };
   });
 }
 
+export function getTaskByIdFromCache(id: string): TaskItem | undefined {
+  return taskCache.get(id);
+}
+
 export function getTaskById(id: string): Promise<TaskItem | undefined> {
+  const cached = taskCache.get(id);
+  if (cached) {
+    return Promise.resolve(cached);
+  }
+
   return runTransaction<TaskItem | undefined>("readonly", (store, done) => {
     const request = store.get(id);
-    request.onsuccess = () => done(request.result as TaskItem | undefined);
+    request.onsuccess = () => {
+      const task = request.result as TaskItem | undefined;
+      if (task) {
+        taskCache.set(task.id, task);
+      }
+      done(task);
+    };
   });
 }
 
@@ -109,13 +143,19 @@ export function upsertTask(task: TaskItem): Promise<TaskItem> {
 
   return runTransaction<TaskItem>("readwrite", (store, done) => {
     const request = store.put(nextTask);
-    request.onsuccess = () => done(nextTask);
+    request.onsuccess = () => {
+      taskCache.set(nextTask.id, nextTask);
+      done(nextTask);
+    };
   });
 }
 
 export function deleteTaskById(id: string): Promise<void> {
   return runTransaction<void>("readwrite", (store, done) => {
     const request = store.delete(id);
-    request.onsuccess = () => done(undefined);
+    request.onsuccess = () => {
+      taskCache.delete(id);
+      done(undefined);
+    };
   });
 }

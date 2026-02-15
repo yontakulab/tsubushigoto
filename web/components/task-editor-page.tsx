@@ -3,7 +3,13 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, ImagePlus, Link2 } from "lucide-react";
-import { createTaskDraft, getTaskById, TaskItem, upsertTask } from "@/lib/tasks-db";
+import {
+  createTaskDraft,
+  getTaskById,
+  getTaskByIdFromCache,
+  TaskItem,
+  upsertTask,
+} from "@/lib/tasks-db";
 
 type TaskEditorPageProps = {
   taskId?: string;
@@ -18,39 +24,43 @@ const dateTimeFormatter = new Intl.DateTimeFormat("ja-JP", {
 });
 
 export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
-  const [task, setTask] = useState<TaskItem | null>(null);
-  const [lastSavedAt, setLastSavedAt] = useState<string>("");
+  const [task, setTask] = useState<TaskItem | null>(() => {
+    if (!taskId) {
+      return createTaskDraft();
+    }
+    return getTaskByIdFromCache(taskId) ?? null;
+  });
+  const [lastSavedAt, setLastSavedAt] = useState<string>(() => task?.updatedAt ?? "");
   const skipFirstSaveRef = useRef(true);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadTask() {
-      if (taskId) {
-        const existingTask = await getTaskById(taskId);
-        if (!mounted) {
-          return;
-        }
-
-        const nextTask = existingTask ?? createTaskDraft(taskId);
-        setTask(nextTask);
-        setLastSavedAt(nextTask.updatedAt);
+      if (!taskId) {
         return;
       }
 
-      const draft = createTaskDraft();
+      if (task) {
+        setLastSavedAt(task.updatedAt);
+        return;
+      }
+
+      const existingTask = await getTaskById(taskId);
       if (!mounted) {
         return;
       }
-      setTask(draft);
-      setLastSavedAt(draft.updatedAt);
+
+      const nextTask = existingTask ?? createTaskDraft(taskId);
+      setTask(nextTask);
+      setLastSavedAt(nextTask.updatedAt);
     }
 
     void loadTask();
     return () => {
       mounted = false;
     };
-  }, [taskId]);
+  }, [taskId, task]);
 
   useEffect(() => {
     if (!task) {
