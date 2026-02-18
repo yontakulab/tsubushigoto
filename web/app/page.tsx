@@ -551,115 +551,116 @@ export default function Home() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl bg-white px-5 py-6 sm:px-8">
-      <div className="sticky top-0 z-10 mb-0 flex items-start justify-between bg-white py-4" role="banner">
+      <div className="relative mb-0 py-4" role="banner">
         <h1 className="text-xl font-bold tracking-tight text-zinc-900">つぶしごと</h1>
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsFilterMenuOpen((prev) => !prev)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700"
-              aria-label="フィルタ"
-            >
-              <Filter size={16} />
-            </button>
-
-            {isFilterMenuOpen && (
-              <>
-                <button
-                  type="button"
-                  className="fixed inset-0 z-20"
-                  onClick={() => setIsFilterMenuOpen(false)}
-                  aria-label="フィルタメニューを閉じる"
-                />
-                <div className="absolute top-12 right-0 z-30 w-40 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
-                  <button
-                    type="button"
-                    onClick={() => selectFilter("all")}
-                    className={`block w-full px-4 py-3 text-left text-sm ${filterType === "all" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
-                      }`}
-                  >
-                    全て
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => selectFilter("incomplete")}
-                    className={`block w-full px-4 py-3 text-left text-sm ${filterType === "incomplete" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
-                      }`}
-                  >
-                    未完了のみ
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => selectFilter("completed")}
-                    className={`block w-full px-4 py-3 text-left text-sm ${filterType === "completed" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
-                      }`}
-                  >
-                    完了のみ
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsTopMenuOpen((prev) => !prev)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700"
-              aria-label="メニュー"
-            >
-              <Menu size={16} />
-            </button>
-
-            {isTopMenuOpen && (
-              <>
-                <button
-                  type="button"
-                  className="fixed inset-0 z-20"
-                  onClick={() => setIsTopMenuOpen(false)}
-                  aria-label="メニューを閉じる"
-                />
-                <div className="absolute top-12 right-0 z-30 w-44 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
-                  <button
-                    type="button"
-                    onClick={handleReload}
-                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
-                  >
-                    <RotateCw size={15} />
-                    再読み込み
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleExport}
-                    className="block w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
-                  >
-                    エクスポート
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTopMenuOpen(false);
-                      importInputRef.current?.click();
-                    }}
-                    className="block w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
-                  >
-                    インポート
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-          <input
-            ref={importInputRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={handleImport}
-          />
-        </div>
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-px w-screen -translate-x-1/2 bg-zinc-200" />
+      </div>
+
+      <div className="fixed top-5 right-6 z-30 flex items-center gap-2">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsFilterMenuOpen((prev) => !prev)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 bg-white/70 text-zinc-700"
+            aria-label="フィルタ"
+          >
+            <Filter size={16} />
+          </button>
+
+          {isFilterMenuOpen && (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-20"
+                onClick={() => setIsFilterMenuOpen(false)}
+                aria-label="フィルタメニューを閉じる"
+              />
+              <div className="absolute top-12 right-0 z-30 w-40 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => selectFilter("all")}
+                  className={`block w-full px-4 py-3 text-left text-sm ${filterType === "all" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
+                    }`}
+                >
+                  全て
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectFilter("incomplete")}
+                  className={`block w-full px-4 py-3 text-left text-sm ${filterType === "incomplete" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
+                    }`}
+                >
+                  未完了のみ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectFilter("completed")}
+                  className={`block w-full px-4 py-3 text-left text-sm ${filterType === "completed" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
+                    }`}
+                >
+                  完了のみ
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsTopMenuOpen((prev) => !prev)}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 bg-white/70 text-zinc-700"
+            aria-label="メニュー"
+          >
+            <Menu size={16} />
+          </button>
+
+          {isTopMenuOpen && (
+            <>
+              <button
+                type="button"
+                className="fixed inset-0 z-20"
+                onClick={() => setIsTopMenuOpen(false)}
+                aria-label="メニューを閉じる"
+              />
+              <div className="absolute top-12 right-0 z-30 w-44 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+                <button
+                  type="button"
+                  onClick={handleReload}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
+                >
+                  <RotateCw size={15} />
+                  再読み込み
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  className="block w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
+                >
+                  エクスポート
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTopMenuOpen(false);
+                    importInputRef.current?.click();
+                  }}
+                  className="block w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
+                >
+                  インポート
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+
+        <input
+          ref={importInputRef}
+          type="file"
+          accept="application/json,.json"
+          className="hidden"
+          onChange={handleImport}
+        />
       </div>
 
       <section className="mb-24 divide-y divide-zinc-200 border-b border-zinc-200">
