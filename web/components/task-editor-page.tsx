@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, ImagePlus, Link2 } from "lucide-react";
 import {
@@ -159,6 +159,10 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
     });
   };
 
+  const handleDateFieldChange = (field: "startDate" | "endDate") => (event: ChangeEvent<HTMLInputElement> | FormEvent<HTMLInputElement>) => {
+    updateField(field, event.currentTarget.value);
+  };
+
   const handleCompleteButtonClick = () => {
     if (!task) {
       return;
@@ -265,7 +269,8 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
                 type="date"
                 className="block w-full min-w-0 border-0 bg-transparent p-0 text-sm outline-none"
                 value={task.startDate}
-                onChange={(event) => updateField("startDate", event.target.value)}
+                onInput={handleDateFieldChange("startDate")}
+                onChange={handleDateFieldChange("startDate")}
               />
             </div>
           </div>
@@ -277,7 +282,8 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
                 type="date"
                 className="block w-full min-w-0 border-0 bg-transparent p-0 text-sm outline-none"
                 value={task.endDate}
-                onChange={(event) => updateField("endDate", event.target.value)}
+                onInput={handleDateFieldChange("endDate")}
+                onChange={handleDateFieldChange("endDate")}
               />
             </div>
           </div>
