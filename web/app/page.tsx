@@ -35,7 +35,7 @@ function getTodayJstDateString() {
 
 function formatDateForDisplay(dateValue: string) {
   if (!dateValue) {
-    return "-";
+    return "";
   }
 
   const [year, month, day] = dateValue.split("-");
