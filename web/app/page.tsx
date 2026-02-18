@@ -270,6 +270,7 @@ export default function Home() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [filterType, setFilterType] = useState<FilterType>(getInitialFilterType);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
+  const [isListVisible, setIsListVisible] = useState(false);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isTopMenuOpen, setIsTopMenuOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<TaskItem | null>(null);
@@ -470,6 +471,21 @@ export default function Home() {
 
   useEffect(() => {
     if (!isInitialLoaded) {
+      setIsListVisible(false);
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      setIsListVisible(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [isInitialLoaded]);
+
+  useEffect(() => {
+    if (!isInitialLoaded) {
       return;
     }
 
@@ -647,7 +663,7 @@ export default function Home() {
       </header>
 
       <section className="mb-24 divide-y divide-zinc-200 border-b border-zinc-200">
-        {!isInitialLoaded ? (
+        {!isInitialLoaded || !isListVisible ? (
           ""
         ) : filteredTasks.length === 0 ? (
           ""
