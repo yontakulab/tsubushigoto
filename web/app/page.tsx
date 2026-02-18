@@ -633,7 +633,7 @@ export default function Home() {
 
       <Link
         href="/task/new"
-        className="fixed right-5 bottom-6 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg transition hover:scale-105"
+        className="fixed right-6 bottom-5 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-white shadow-[0_3px_8px_rgba(15,23,42,0.5)]"
         aria-label="タスクを作成"
       >
         <Plus size={22} />
