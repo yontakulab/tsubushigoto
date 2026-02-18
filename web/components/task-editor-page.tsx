@@ -207,7 +207,7 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl overflow-x-hidden bg-white px-5 py-5 text-zinc-900 sm:px-8">
-      <header className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between" role="banner">
         <button
           type="button"
           onClick={() => {
@@ -235,7 +235,7 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
             <Check size={20} />
           </button>
         )}
-      </header>
+      </div>
 
       <div className="mb-4 text-xs text-zinc-500">
         <span>作成日: {createdText}</span>
