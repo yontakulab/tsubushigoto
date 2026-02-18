@@ -257,25 +257,29 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
           />
         </div>
 
-        <div className="flex gap-3">
-          <div className="min-w-0 flex-1">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="min-w-0">
             <label className="mb-1 block text-xs text-zinc-500">開始日</label>
-            <input
-              type="date"
-              className="w-full rounded-xl border border-zinc-200 px-4 py-3 outline-none focus:border-zinc-400"
-              value={task.startDate}
-              onChange={(event) => updateField("startDate", event.target.value)}
-            />
+            <div className="min-w-0 overflow-hidden rounded-xl border border-zinc-200 px-3 py-2 focus-within:border-zinc-400">
+              <input
+                type="date"
+                className="block w-full min-w-0 border-0 bg-transparent p-0 text-sm outline-none"
+                value={task.startDate}
+                onChange={(event) => updateField("startDate", event.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0">
             <label className="mb-1 block text-xs text-zinc-500">終了日</label>
-            <input
-              type="date"
-              className="w-full rounded-xl border border-zinc-200 px-4 py-3 outline-none focus:border-zinc-400"
-              value={task.endDate}
-              onChange={(event) => updateField("endDate", event.target.value)}
-            />
+            <div className="min-w-0 overflow-hidden rounded-xl border border-zinc-200 px-3 py-2 focus-within:border-zinc-400">
+              <input
+                type="date"
+                className="block w-full min-w-0 border-0 bg-transparent p-0 text-sm outline-none"
+                value={task.endDate}
+                onChange={(event) => updateField("endDate", event.target.value)}
+              />
+            </div>
           </div>
         </div>
 
