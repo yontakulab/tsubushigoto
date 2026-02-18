@@ -486,7 +486,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl bg-white px-5 py-6 sm:px-8">
-      <header className="sticky top-0 z-10 mb-0 flex items-start justify-between border-b border-zinc-200 bg-white py-4">
+      <header className="sticky top-0 z-10 mb-0 flex items-start justify-between bg-white py-4">
         <h1 className="text-xl font-bold tracking-tight text-zinc-900">つぶしごと</h1>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -594,6 +594,7 @@ export default function Home() {
             onChange={handleImport}
           />
         </div>
+        <div className="pointer-events-none absolute bottom-0 left-1/2 h-px w-screen -translate-x-1/2 bg-zinc-200" />
       </header>
 
       <section className="mb-24 divide-y divide-zinc-200 border-b border-zinc-200">
