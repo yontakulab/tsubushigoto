@@ -7,6 +7,41 @@ import { createTaskDraft, deleteTaskById, getAllTasks, TaskItem, upsertTask } fr
 
 type FilterType = "all" | "incomplete" | "completed";
 const FILTER_STORAGE_KEY = "tsubushigoto-filter-type";
+const LIST_SCROLL_Y_STORAGE_KEY = "tsubushigoto-list-scroll-y";
+const LIST_SCROLL_RESTORE_STORAGE_KEY = "tsubushigoto-list-scroll-restore";
+
+function saveListScrollPosition() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(LIST_SCROLL_Y_STORAGE_KEY, String(window.scrollY));
+  window.sessionStorage.setItem(LIST_SCROLL_RESTORE_STORAGE_KEY, "1");
+}
+
+function consumeListScrollPositionToRestore() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const shouldRestore = window.sessionStorage.getItem(LIST_SCROLL_RESTORE_STORAGE_KEY);
+  if (shouldRestore !== "1") {
+    return null;
+  }
+
+  window.sessionStorage.removeItem(LIST_SCROLL_RESTORE_STORAGE_KEY);
+  const storedValue = window.sessionStorage.getItem(LIST_SCROLL_Y_STORAGE_KEY);
+  if (!storedValue) {
+    return null;
+  }
+
+  const scrollY = Number(storedValue);
+  if (Number.isNaN(scrollY)) {
+    return null;
+  }
+
+  return Math.max(0, scrollY);
+}
 
 function isFilterType(value: string): value is FilterType {
   return value === "all" || value === "incomplete" || value === "completed";
@@ -193,7 +228,10 @@ function TaskCard({
         if (suppressClickRef.current) {
           event.preventDefault();
           suppressClickRef.current = false;
+          return;
         }
+
+        saveListScrollPosition();
       }}
       className="block h-25 select-none bg-white px-0 py-2 transition [-webkit-touch-callout:none] [-webkit-user-select:none]"
     >
@@ -431,6 +469,21 @@ export default function Home() {
   }, [filterType]);
 
   useEffect(() => {
+    if (!isInitialLoaded) {
+      return;
+    }
+
+    const scrollY = consumeListScrollPositionToRestore();
+    if (scrollY === null) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollY, behavior: "auto" });
+    });
+  }, [isInitialLoaded, tasks.length]);
+
+  useEffect(() => {
     if (toastTimerRef.current !== null) {
       window.clearTimeout(toastTimerRef.current);
     }
@@ -634,6 +687,7 @@ export default function Home() {
 
       <Link
         href="/task/new"
+        onClick={() => saveListScrollPosition()}
         className="fixed right-6 bottom-5 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-white shadow-[0_3px_8px_rgba(15,23,42,0.5)]"
         aria-label="タスクを作成"
       >

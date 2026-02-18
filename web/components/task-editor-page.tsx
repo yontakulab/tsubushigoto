@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Check, ImagePlus, Link2, Trash2 } from "lucide-react";
 import {
   createTaskDraft,
@@ -24,6 +25,7 @@ function formatJapaneseDate(dateValue: string) {
 }
 
 export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
+  const router = useRouter();
   const [task, setTask] = useState<TaskItem | null>(() => {
     if (!taskId) {
       return createTaskDraft();
@@ -206,9 +208,19 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl overflow-x-hidden bg-white px-5 py-5 text-zinc-900 sm:px-8">
       <header className="mb-4 flex items-center justify-between">
-        <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-700">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.history.length > 1) {
+              router.back();
+              return;
+            }
+            router.push("/");
+          }}
+          className="text-sm text-zinc-500 hover:text-zinc-700"
+        >
           一覧へ戻る
-        </Link>
+        </button>
         {taskId && (
           <button
             type="button"
