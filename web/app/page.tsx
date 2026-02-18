@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type TouchEvent } from "react";
-import { Check, EllipsisVertical, Filter, Plus, RotateCw } from "lucide-react";
+import { Check, Filter, Menu, Plus, RotateCw } from "lucide-react";
 import { createTaskDraft, deleteTaskById, getAllTasks, TaskItem, upsertTask } from "@/lib/tasks-db";
 
 type FilterType = "all" | "incomplete" | "completed";
@@ -42,7 +42,7 @@ function formatDateForDisplay(dateValue: string) {
   if (!year || !month || !day) {
     return dateValue;
   }
-  return `${year}/${month}/${day}`;
+  return `${year}年${Number(month)}月${Number(day)}日`;
 }
 
 type TaskMenuState = {
@@ -97,13 +97,13 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 
-const createdAtFormatter = new Intl.DateTimeFormat("ja-JP", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+function formatCreatedAtForDisplay(dateValue: string) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
 
 function TaskCard({
   task,
@@ -127,8 +127,8 @@ function TaskCard({
   const isFutureStart = Boolean(task.startDate) && task.startDate > todayJst;
   const hasSchedule = Boolean(task.startDate || task.endDate);
   const dateLabel = hasSchedule
-    ? `開始: ${formatDateForDisplay(task.startDate)} / 終了: ${formatDateForDisplay(task.endDate)}`
-    : `作成: ${createdAtFormatter.format(new Date(task.createdAt))}`;
+    ? `${formatDateForDisplay(task.startDate)} ~ ${formatDateForDisplay(task.endDate)}`
+    : `${formatCreatedAtForDisplay(task.createdAt)}`;
 
   const clearLongPressTimer = () => {
     if (longPressTimerRef.current !== null) {
@@ -181,57 +181,35 @@ function TaskCard({
           suppressClickRef.current = false;
         }
       }}
-      className={`block h-[122px] rounded-2xl border px-4 py-3 transition hover:border-zinc-400 ${isFutureStart ? "border-zinc-200 bg-zinc-100" : "border-zinc-200 bg-white"
-        }`}
+      className="block h-25 bg-white px-0 py-2 transition"
     >
-      {hasImage ? (
-        <div className="flex h-full items-start gap-3">
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
-            <img src={imageSrc} alt={task.title || "task image"} className="h-full w-full object-cover" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <h2 className={`line-clamp-2 text-base font-semibold ${isFutureStart ? "text-zinc-500" : "text-zinc-900"}`}>
-                {task.title || "（タイトル未入力）"}
-              </h2>
-              {task.completed && (
-                <span className="mt-0.5 rounded-full bg-emerald-500 p-1 text-white">
-                  <Check size={13} />
-                </span>
-              )}
-            </div>
-            <div className="mt-1 min-h-10">
-              {task.caption && (
-                <p className={`line-clamp-2 text-sm ${isFutureStart ? "text-zinc-500" : "text-zinc-600"}`}>
-                  {task.caption}
-                </p>
-              )}
-            </div>
-            <p className={`text-xs ${isFutureStart ? "text-zinc-400" : "text-zinc-500"}`}>{dateLabel}</p>
-          </div>
-        </div>
-      ) : (
-        <div className="flex h-full flex-col">
+      <div className="flex h-full items-center gap-3">
+        <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <h2 className={`line-clamp-2 text-base font-semibold ${isFutureStart ? "text-zinc-500" : "text-zinc-900"}`}>
+            <h2 className={`line-clamp-2 text-sm font-semibold ${isFutureStart ? "text-zinc-500" : "text-zinc-900"}`}>
               {task.title || "（タイトル未入力）"}
             </h2>
             {task.completed && (
               <span className="mt-0.5 rounded-full bg-emerald-500 p-1 text-white">
-                <Check size={13} />
+                <Check size={12} />
               </span>
             )}
           </div>
-          <div className="mt-1 min-h-10">
+          <div className="mt-1 min-h-8">
             {task.caption && (
-              <p className={`line-clamp-2 text-sm ${isFutureStart ? "text-zinc-500" : "text-zinc-600"}`}>
+              <p className={`line-clamp-2 text-xs ${isFutureStart ? "text-zinc-500" : "text-zinc-600"}`}>
                 {task.caption}
               </p>
             )}
           </div>
-          <p className={`text-xs ${isFutureStart ? "text-zinc-400" : "text-zinc-500"}`}>{dateLabel}</p>
+          <p className={`mt-1 text-xs ${isFutureStart ? "text-zinc-400" : "text-zinc-500"}`}>{dateLabel}</p>
         </div>
-      )}
+        <div className="h-18 w-32 shrink-0 overflow-hidden rounded-md bg-zinc-100">
+          {hasImage && (
+            <img src={imageSrc} alt={task.title || "task image"} className="h-full w-full object-cover" />
+          )}
+        </div>
+      </div>
     </Link>
   );
 }
@@ -485,56 +463,106 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl bg-zinc-50 px-5 py-6 sm:px-8">
+    <main className="mx-auto min-h-screen w-full max-w-3xl bg-white px-5 py-6 sm:px-8">
       <header className="relative mb-5 flex items-start justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-zinc-900">つぶしごと</h1>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setIsTopMenuOpen((prev) => !prev)}
-            className="rounded-full border border-zinc-200 bg-white p-2 text-zinc-700"
-            aria-label="メニュー"
-          >
-            <EllipsisVertical size={20} />
-          </button>
+        <h1 className="text-xl font-bold tracking-tight text-zinc-900">つぶしごと</h1>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsFilterMenuOpen((prev) => !prev)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700"
+              aria-label="フィルタ"
+            >
+              <Filter size={16} />
+            </button>
 
-          {isTopMenuOpen && (
-            <>
-              <button
-                type="button"
-                className="fixed inset-0 z-20"
-                onClick={() => setIsTopMenuOpen(false)}
-                aria-label="メニューを閉じる"
-              />
-              <div className="absolute top-12 right-0 z-30 w-44 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+            {isFilterMenuOpen && (
+              <>
                 <button
                   type="button"
-                  onClick={handleReload}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
-                >
-                  <RotateCw size={15} />
-                  再読み込み
-                </button>
+                  className="fixed inset-0 z-20"
+                  onClick={() => setIsFilterMenuOpen(false)}
+                  aria-label="フィルタメニューを閉じる"
+                />
+                <div className="absolute top-12 right-0 z-30 w-40 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+                  <button
+                    type="button"
+                    onClick={() => selectFilter("all")}
+                    className={`block w-full px-4 py-3 text-left text-sm ${filterType === "all" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
+                      }`}
+                  >
+                    全て
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectFilter("incomplete")}
+                    className={`block w-full px-4 py-3 text-left text-sm ${filterType === "incomplete" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
+                      }`}
+                  >
+                    未完了のみ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectFilter("completed")}
+                    className={`block w-full px-4 py-3 text-left text-sm ${filterType === "completed" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
+                      }`}
+                  >
+                    完了のみ
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsTopMenuOpen((prev) => !prev)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700"
+              aria-label="メニュー"
+            >
+              <Menu size={16} />
+            </button>
+
+            {isTopMenuOpen && (
+              <>
                 <button
                   type="button"
-                  onClick={handleExport}
-                  className="block w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
-                >
-                  エクスポート
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsTopMenuOpen(false);
-                    importInputRef.current?.click();
-                  }}
-                  className="block w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
-                >
-                  インポート
-                </button>
-              </div>
-            </>
-          )}
+                  className="fixed inset-0 z-20"
+                  onClick={() => setIsTopMenuOpen(false)}
+                  aria-label="メニューを閉じる"
+                />
+                <div className="absolute top-12 right-0 z-30 w-44 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+                  <button
+                    type="button"
+                    onClick={handleReload}
+                    className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
+                  >
+                    <RotateCw size={15} />
+                    再読み込み
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExport}
+                    className="block w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
+                  >
+                    エクスポート
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTopMenuOpen(false);
+                      importInputRef.current?.click();
+                    }}
+                    className="block w-full px-4 py-3 text-left text-sm text-zinc-700 hover:bg-zinc-100"
+                  >
+                    インポート
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           <input
             ref={importInputRef}
@@ -546,7 +574,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="space-y-3 pb-24">
+      <section className="mb-24 divide-y divide-zinc-200 border-y border-zinc-200">
         {filteredTasks.length === 0 ? (
           ""
         ) : (
@@ -607,52 +635,12 @@ export default function Home() {
         </div>
       )}
 
-      <div className="fixed bottom-6 left-5 z-10 sm:left-8">
-        {isFilterMenuOpen && (
-          <div className="mb-3 w-40 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg">
-            <button
-              type="button"
-              onClick={() => selectFilter("all")}
-              className={`block w-full px-4 py-3 text-left text-sm ${filterType === "all" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
-                }`}
-            >
-              全て
-            </button>
-            <button
-              type="button"
-              onClick={() => selectFilter("incomplete")}
-              className={`block w-full px-4 py-3 text-left text-sm ${filterType === "incomplete" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
-                }`}
-            >
-              未完了のみ
-            </button>
-            <button
-              type="button"
-              onClick={() => selectFilter("completed")}
-              className={`block w-full px-4 py-3 text-left text-sm ${filterType === "completed" ? "bg-zinc-100 text-zinc-900" : "text-zinc-700"
-                }`}
-            >
-              完了のみ
-            </button>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setIsFilterMenuOpen((prev) => !prev)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-zinc-900 shadow-lg transition hover:scale-105"
-          aria-label="フィルタ"
-        >
-          <Filter size={24} />
-        </button>
-      </div>
-
       <Link
         href="/task/new"
-        className="fixed right-5 bottom-6 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg transition hover:scale-105"
+        className="fixed right-5 bottom-6 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg transition hover:scale-105"
         aria-label="タスクを作成"
       >
-        <Plus size={26} />
+        <Plus size={22} />
       </Link>
 
       {toast && (
