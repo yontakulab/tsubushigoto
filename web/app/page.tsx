@@ -533,10 +533,6 @@ export default function Home() {
     setTaskToDelete(null);
   };
 
-  if (!isInitialLoaded) {
-    return null;
-  }
-
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl bg-white px-5 py-6 sm:px-8">
       <header className="sticky top-0 z-10 mb-0 flex items-start justify-between bg-white py-4">
@@ -651,7 +647,9 @@ export default function Home() {
       </header>
 
       <section className="mb-24 divide-y divide-zinc-200 border-b border-zinc-200">
-        {filteredTasks.length === 0 ? (
+        {!isInitialLoaded ? (
+          ""
+        ) : filteredTasks.length === 0 ? (
           ""
         ) : (
           filteredTasks.map((task) => (
