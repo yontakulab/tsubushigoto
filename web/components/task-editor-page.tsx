@@ -15,13 +15,13 @@ type TaskEditorPageProps = {
   taskId?: string;
 };
 
-const dateTimeFormatter = new Intl.DateTimeFormat("ja-JP", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+function formatJapaneseDate(dateValue: string) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
 
 export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
   const [task, setTask] = useState<TaskItem | null>(() => {
@@ -30,7 +30,7 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
     }
     return getTaskByIdFromCache(taskId) ?? null;
   });
-  const [lastSavedAt, setLastSavedAt] = useState<string>(() => task?.updatedAt ?? "");
+  const [isCompleteConfirmOpen, setIsCompleteConfirmOpen] = useState(false);
   const skipFirstSaveRef = useRef(true);
 
   useEffect(() => {
@@ -42,7 +42,6 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
       }
 
       if (task) {
-        setLastSavedAt(task.updatedAt);
         return;
       }
 
@@ -53,7 +52,6 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
 
       const nextTask = existingTask ?? createTaskDraft(taskId);
       setTask(nextTask);
-      setLastSavedAt(nextTask.updatedAt);
     }
 
     void loadTask();
@@ -73,8 +71,7 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
     }
 
     const timer = setTimeout(async () => {
-      const saved = await upsertTask(task);
-      setLastSavedAt(saved.updatedAt);
+      await upsertTask(task);
     }, 300);
 
     return () => {
@@ -82,12 +79,17 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
     };
   }, [task]);
 
-  const savedText = useMemo(() => {
-    if (!lastSavedAt) {
+  const createdText = useMemo(() => {
+    return formatJapaneseDate(task?.createdAt ?? "");
+  }, [task?.createdAt]);
+
+  const completedText = useMemo(() => {
+    if (!task?.completedAt) {
       return "";
     }
-    return dateTimeFormatter.format(new Date(lastSavedAt));
-  }, [lastSavedAt]);
+
+    return formatJapaneseDate(task.completedAt);
+  }, [task?.completedAt]);
 
   const updateField = (field: keyof TaskItem, value: string | boolean | Blob | null) => {
     setTask((prev) => {
@@ -101,37 +103,96 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
     });
   };
 
-  const previewImageSrc = useMemo(() => {
-    if (task?.imageBlob) {
-      return URL.createObjectURL(task.imageBlob);
+  const previewImageBlobUrls = useMemo(() => {
+    if (!task) {
+      return [] as string[];
     }
-    return task?.imageUrl ?? "";
+
+    const imageBlobs = task.imageBlobs?.length
+      ? task.imageBlobs
+      : task.imageBlob
+        ? [task.imageBlob]
+        : [];
+    return imageBlobs.map((blob) => URL.createObjectURL(blob));
   }, [task]);
+
+  const previewImageSrcList = useMemo(() => {
+    if (previewImageBlobUrls.length > 0) {
+      return previewImageBlobUrls;
+    }
+    return task?.imageUrl ? [task.imageUrl] : [];
+  }, [previewImageBlobUrls, task]);
 
   useEffect(() => {
     return () => {
-      if (task?.imageBlob && previewImageSrc) {
-        URL.revokeObjectURL(previewImageSrc);
-      }
+      previewImageBlobUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [task, previewImageSrc]);
+  }, [previewImageBlobUrls]);
 
   const handleImageFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
+    const files = event.target.files;
+    if (!files || files.length === 0) {
       return;
     }
 
+    const addedImageBlobs = Array.from(files);
+    event.target.value = "";
+
+    setTask((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      const existingImageBlobs = prev.imageBlobs?.length
+        ? prev.imageBlobs
+        : prev.imageBlob
+          ? [prev.imageBlob]
+          : [];
+      const imageBlobs = [...existingImageBlobs, ...addedImageBlobs];
+
+      return {
+        ...prev,
+        imageBlobs,
+        imageBlob: imageBlobs[0] ?? null,
+        imageUrl: "",
+      };
+    });
+  };
+
+  const handleCompleteButtonClick = () => {
+    if (!task) {
+      return;
+    }
+
+    if (task.completed) {
+      setTask((prev) => {
+        if (!prev) {
+          return prev;
+        }
+        return {
+          ...prev,
+          completed: false,
+          completedAt: "",
+        };
+      });
+      return;
+    }
+
+    setIsCompleteConfirmOpen(true);
+  };
+
+  const handleConfirmComplete = () => {
     setTask((prev) => {
       if (!prev) {
         return prev;
       }
       return {
         ...prev,
-        imageBlob: file,
-        imageUrl: "",
+        completed: true,
+        completedAt: new Date().toISOString(),
       };
     });
+    setIsCompleteConfirmOpen(false);
   };
 
   if (!task) {
@@ -144,19 +205,26 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
         <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-700">
           一覧へ戻る
         </Link>
-        <button
-          type="button"
-          onClick={() => updateField("completed", !task.completed)}
-          className={`rounded-full border p-2 transition ${task.completed
-            ? "border-emerald-500 bg-emerald-500 text-white"
-            : "border-zinc-300 bg-white text-zinc-500"
-            }`}
-          aria-label={task.completed ? "未完了にする" : "完了にする"}
-          title={task.completed ? "完了" : "未完了"}
-        >
-          <Check size={20} />
-        </button>
+        {taskId && (
+          <button
+            type="button"
+            onClick={handleCompleteButtonClick}
+            className={`rounded-full border p-2 transition ${task.completed
+              ? "border-indigo-700 bg-indigo-700 text-white"
+              : "border-zinc-300 bg-white text-zinc-500"
+              }`}
+            aria-label={task.completed ? "未完了にする" : "完了にする"}
+            title={task.completed ? "完了" : "未完了"}
+          >
+            <Check size={20} />
+          </button>
+        )}
       </header>
+
+      <div className="mb-4 text-xs text-zinc-500">
+        <span>作成日: {createdText}</span>
+        {task.completed && completedText && <span className="ml-3">完了日: {completedText}</span>}
+      </div>
 
       <section className="space-y-4">
         <div>
@@ -238,24 +306,52 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
           <label className="mb-1 block text-xs text-zinc-500">画像</label>
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700">
             <ImagePlus size={16} />
-            画像を選択
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageFileChange} />
+            画像を追加
+            <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageFileChange} />
           </label>
 
-          {previewImageSrc && (
-            <img
-              src={previewImageSrc}
-              alt="task"
-              className="mt-3 w-full rounded-2xl border border-zinc-200 object-cover"
-            />
+          {(task.imageBlobs?.length ?? 0) > 0 && (
+            <p className="mt-2 text-xs text-zinc-500">{task.imageBlobs.length}枚選択中（一覧サムネイルは先頭画像）</p>
+          )}
+
+          {previewImageSrcList.length > 0 && (
+            <div className="mt-3 space-y-3">
+              {previewImageSrcList.map((previewImageSrc, index) => (
+                <img
+                  key={`${previewImageSrc}-${index}`}
+                  src={previewImageSrc}
+                  alt={`task ${index + 1}`}
+                  className="w-full rounded-2xl border border-zinc-200 object-cover"
+                />
+              ))}
+            </div>
           )}
         </div>
       </section>
 
-      <footer className="mt-6 text-xs text-zinc-500">
-        作成日時: {dateTimeFormatter.format(new Date(task.createdAt))}
-        <span className="ml-3">自動保存: {savedText}</span>
-      </footer>
+      {isCompleteConfirmOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-5">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5">
+            <h2 className="text-base font-semibold text-zinc-900">完了にしますか？</h2>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg border border-zinc-300 px-4 py-2 text-sm text-zinc-700"
+                onClick={() => setIsCompleteConfirmOpen(false)}
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white"
+                onClick={handleConfirmComplete}
+              >
+                完了にする
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

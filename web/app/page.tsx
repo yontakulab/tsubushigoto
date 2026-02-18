@@ -45,19 +45,14 @@ function formatDateForDisplay(dateValue: string) {
   return `${year}年${Number(month)}月${Number(day)}日`;
 }
 
-type TaskMenuState = {
-  task: TaskItem;
-  x: number;
-  y: number;
-};
-
 type ToastState = {
   message: string;
   type: "success" | "error";
 };
 
-type ExportTaskItem = Omit<TaskItem, "imageBlob"> & {
+type ExportTaskItem = Omit<TaskItem, "imageBlob" | "imageBlobs"> & {
   imageBlobDataUrl: string | null;
+  imageBlobDataUrls: string[];
 };
 
 function asString(value: unknown) {
@@ -97,7 +92,22 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mimeType });
 }
 
+function getTaskImageBlobs(task: Pick<TaskItem, "imageBlobs" | "imageBlob">) {
+  if (Array.isArray(task.imageBlobs) && task.imageBlobs.length > 0) {
+    return task.imageBlobs;
+  }
+  return task.imageBlob ? [task.imageBlob] : [];
+}
+
 function formatCreatedAtForDisplay(dateValue: string) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+}
+
+function formatCompletedAtForDisplay(dateValue: string) {
   const date = new Date(dateValue);
   if (Number.isNaN(date.getTime())) {
     return "-";
@@ -117,8 +127,9 @@ function TaskCard({
   const suppressClickRef = useRef(false);
 
   const imageSrc = useMemo(() => {
-    if (task.imageBlob) {
-      return URL.createObjectURL(task.imageBlob);
+    const firstImageBlob = getTaskImageBlobs(task)[0];
+    if (firstImageBlob) {
+      return URL.createObjectURL(firstImageBlob);
     }
     return task.imageUrl ?? "";
   }, [task]);
@@ -126,9 +137,11 @@ function TaskCard({
   const hasImage = Boolean(imageSrc);
   const isFutureStart = Boolean(task.startDate) && task.startDate > todayJst;
   const hasSchedule = Boolean(task.startDate || task.endDate);
-  const dateLabel = hasSchedule
-    ? `${formatDateForDisplay(task.startDate)} ~ ${formatDateForDisplay(task.endDate)}`
-    : `${formatCreatedAtForDisplay(task.createdAt)}`;
+  const dateLabel = task.completed && task.completedAt
+    ? `完了: ${formatCompletedAtForDisplay(task.completedAt)}`
+    : hasSchedule
+      ? `${formatDateForDisplay(task.startDate)} ~ ${formatDateForDisplay(task.endDate)}`
+      : `${formatCreatedAtForDisplay(task.createdAt)}`;
 
   const clearLongPressTimer = () => {
     if (longPressTimerRef.current !== null) {
@@ -161,7 +174,7 @@ function TaskCard({
   useEffect(() => {
     return () => {
       clearLongPressTimer();
-      if (task.imageBlob && imageSrc) {
+      if (getTaskImageBlobs(task)[0] && imageSrc) {
         URL.revokeObjectURL(imageSrc);
       }
     };
@@ -175,23 +188,24 @@ function TaskCard({
       onTouchEnd={clearLongPressTimer}
       onTouchMove={clearLongPressTimer}
       onTouchCancel={clearLongPressTimer}
+      onDragStart={(event) => event.preventDefault()}
       onClick={(event) => {
         if (suppressClickRef.current) {
           event.preventDefault();
           suppressClickRef.current = false;
         }
       }}
-      className="block h-25 bg-white px-0 py-2 transition"
+      className="block h-25 select-none bg-white px-0 py-2 transition [-webkit-touch-callout:none] [-webkit-user-select:none]"
     >
       <div className="flex h-full items-center gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start gap-2">
             <h2 className={`line-clamp-2 text-sm font-semibold ${isFutureStart ? "text-zinc-500" : "text-zinc-900"}`}>
               {task.title || "（タイトル未入力）"}
             </h2>
             {task.completed && (
-              <span className="mt-0.5 rounded-full bg-emerald-500 p-1 text-white">
-                <Check size={12} />
+              <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-indigo-700 text-white">
+                <Check size={11} />
               </span>
             )}
           </div>
@@ -220,7 +234,6 @@ export default function Home() {
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isTopMenuOpen, setIsTopMenuOpen] = useState(false);
-  const [taskMenuState, setTaskMenuState] = useState<TaskMenuState | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<TaskItem | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
@@ -250,7 +263,8 @@ export default function Home() {
       const exportTasks = await Promise.all(
         allTasks.map(async (task): Promise<ExportTaskItem> => ({
           ...task,
-          imageBlobDataUrl: task.imageBlob ? await blobToDataUrl(task.imageBlob) : null,
+          imageBlobDataUrl: getTaskImageBlobs(task)[0] ? await blobToDataUrl(getTaskImageBlobs(task)[0]) : null,
+          imageBlobDataUrls: await Promise.all(getTaskImageBlobs(task).map((blob) => blobToDataUrl(blob))),
         })),
       );
 
@@ -303,7 +317,10 @@ export default function Home() {
           continue;
         }
 
-        const record = sourceTask as Partial<ExportTaskItem> & { imageBlobDataUrl?: unknown };
+        const record = sourceTask as Partial<ExportTaskItem> & {
+          imageBlobDataUrl?: unknown;
+          imageBlobDataUrls?: unknown;
+        };
         const hasTaskLikeField = [
           "title",
           "caption",
@@ -313,7 +330,9 @@ export default function Home() {
           "endDate",
           "imageUrl",
           "imageBlobDataUrl",
+          "imageBlobDataUrls",
           "createdAt",
+          "completedAt",
           "updatedAt",
           "completed",
         ].some((key) => key in record);
@@ -323,14 +342,24 @@ export default function Home() {
         }
 
         const draft = createTaskDraft();
-        let imageBlob: Blob | null = null;
+        const imageBlobs: Blob[] = [];
 
-        if (typeof record.imageBlobDataUrl === "string" && record.imageBlobDataUrl.startsWith("data:")) {
-          try {
-            imageBlob = dataUrlToBlob(record.imageBlobDataUrl);
-          } catch {
-            imageBlob = null;
+        if (Array.isArray(record.imageBlobDataUrls)) {
+          for (const item of record.imageBlobDataUrls) {
+            if (typeof item !== "string" || !item.startsWith("data:")) {
+              continue;
+            }
+
+            try {
+              imageBlobs.push(dataUrlToBlob(item));
+            } catch { }
           }
+        }
+
+        if (imageBlobs.length === 0 && typeof record.imageBlobDataUrl === "string" && record.imageBlobDataUrl.startsWith("data:")) {
+          try {
+            imageBlobs.push(dataUrlToBlob(record.imageBlobDataUrl));
+          } catch { }
         }
 
         const nextTask: TaskItem = {
@@ -341,9 +370,11 @@ export default function Home() {
           link: asString(record.link),
           startDate: asString(record.startDate),
           endDate: asString(record.endDate),
-          imageBlob,
+          imageBlobs,
+          imageBlob: imageBlobs[0] ?? null,
           imageUrl: asString(record.imageUrl),
           createdAt: asString(record.createdAt) || draft.createdAt,
+          completedAt: asString(record.completedAt),
           updatedAt: asString(record.updatedAt) || draft.updatedAt,
           completed: Boolean(record.completed),
         };
@@ -435,17 +466,8 @@ export default function Home() {
     setIsFilterMenuOpen(false);
   };
 
-  const openTaskMenu = (task: TaskItem, x: number, y: number) => {
-    const menuWidth = 144;
-    const menuHeight = 52;
-    const clampedX = Math.min(x, window.innerWidth - menuWidth - 12);
-    const clampedY = Math.min(y, window.innerHeight - menuHeight - 12);
-
-    setTaskMenuState({
-      task,
-      x: Math.max(12, clampedX),
-      y: Math.max(12, clampedY),
-    });
+  const openTaskMenu = (task: TaskItem, _x: number, _y: number) => {
+    setTaskToDelete(task);
   };
 
   const confirmDeleteTask = async () => {
@@ -464,7 +486,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl bg-white px-5 py-6 sm:px-8">
-      <header className="relative mb-5 flex items-start justify-between">
+      <header className="sticky top-0 z-10 mb-0 flex items-start justify-between border-b border-zinc-200 bg-white py-4">
         <h1 className="text-xl font-bold tracking-tight text-zinc-900">つぶしごと</h1>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -574,7 +596,7 @@ export default function Home() {
         </div>
       </header>
 
-      <section className="mb-24 divide-y divide-zinc-200 border-y border-zinc-200">
+      <section className="mb-24 divide-y divide-zinc-200 border-b border-zinc-200">
         {filteredTasks.length === 0 ? (
           ""
         ) : (
@@ -583,32 +605,6 @@ export default function Home() {
           ))
         )}
       </section>
-
-      {taskMenuState && (
-        <>
-          <button
-            type="button"
-            className="fixed inset-0 z-20"
-            onClick={() => setTaskMenuState(null)}
-            aria-label="メニューを閉じる"
-          />
-          <div
-            className="fixed z-30 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg"
-            style={{ left: taskMenuState.x, top: taskMenuState.y }}
-          >
-            <button
-              type="button"
-              className="px-4 py-3 text-sm text-red-600"
-              onClick={() => {
-                setTaskToDelete(taskMenuState.task);
-                setTaskMenuState(null);
-              }}
-            >
-              削除
-            </button>
-          </div>
-        </>
-      )}
 
       {taskToDelete && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 px-5">

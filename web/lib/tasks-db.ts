@@ -6,9 +6,11 @@ export type TaskItem = {
   link: string;
   startDate: string;
   endDate: string;
+  imageBlobs: Blob[];
   imageBlob: Blob | null;
   imageUrl?: string;
   createdAt: string;
+  completedAt: string;
   updatedAt: string;
   completed: boolean;
 };
@@ -19,6 +21,30 @@ const STORE_NAME = "tasks";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 const taskCache = new Map<string, TaskItem>();
+
+function normalizeTaskRecord(task: TaskItem): TaskItem {
+  if (Array.isArray(task.imageBlobs)) {
+    return {
+      ...task,
+      imageBlob: task.imageBlobs[0] ?? task.imageBlob ?? null,
+      completedAt: task.completedAt ?? "",
+    };
+  }
+
+  if (task.imageBlob) {
+    return {
+      ...task,
+      imageBlobs: [task.imageBlob],
+      completedAt: task.completedAt ?? "",
+    };
+  }
+
+  return {
+    ...task,
+    imageBlobs: [],
+    completedAt: task.completedAt ?? "",
+  };
+}
 
 function openDb(): Promise<IDBDatabase> {
   if (!dbPromise) {
@@ -77,9 +103,11 @@ export function createTaskDraft(id?: string): TaskItem {
     link: "",
     startDate: "",
     endDate: "",
+    imageBlobs: [],
     imageBlob: null,
     imageUrl: "",
     createdAt: now,
+    completedAt: "",
     updatedAt: now,
     completed: false,
   };
@@ -99,7 +127,7 @@ export function getAllTasks(): Promise<TaskItem[]> {
         return new Date(task.createdAt).getTime();
       };
 
-      const tasks = (request.result as TaskItem[]).sort(
+      const tasks = (request.result as TaskItem[]).map(normalizeTaskRecord).sort(
         (a, b) => toSortTime(a) - toSortTime(b),
       );
 
@@ -126,7 +154,8 @@ export function getTaskById(id: string): Promise<TaskItem | undefined> {
   return runTransaction<TaskItem | undefined>("readonly", (store, done) => {
     const request = store.get(id);
     request.onsuccess = () => {
-      const task = request.result as TaskItem | undefined;
+      const record = request.result as TaskItem | undefined;
+      const task = record ? normalizeTaskRecord(record) : undefined;
       if (task) {
         taskCache.set(task.id, task);
       }
@@ -136,8 +165,9 @@ export function getTaskById(id: string): Promise<TaskItem | undefined> {
 }
 
 export function upsertTask(task: TaskItem): Promise<TaskItem> {
+  const normalizedTask = normalizeTaskRecord(task);
   const nextTask = {
-    ...task,
+    ...normalizedTask,
     updatedAt: new Date().toISOString(),
   };
 
