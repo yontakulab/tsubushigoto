@@ -1,9 +1,8 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ImagePlus, Link2, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ImagePlus, Link2, Trash2 } from "lucide-react";
 import {
   createTaskDraft,
   getTaskById,
@@ -207,35 +206,38 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl overflow-x-hidden bg-white px-5 py-5 text-zinc-900 sm:px-8">
-      <div className="mb-4 flex items-center justify-between" role="banner">
+      <div className="mb-4 h-8" role="banner" />
+
+      <button
+        type="button"
+        onClick={() => {
+          if (window.history.length > 1) {
+            router.back();
+            return;
+          }
+          router.push("/");
+        }}
+        className="fixed top-5 left-6 z-30 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-300 bg-white/70 text-zinc-600"
+        aria-label="一覧へ戻る"
+        title="一覧へ戻る"
+      >
+        <ArrowLeft size={16} />
+      </button>
+
+      {taskId && (
         <button
           type="button"
-          onClick={() => {
-            if (window.history.length > 1) {
-              router.back();
-              return;
-            }
-            router.push("/");
-          }}
-          className="text-sm text-zinc-500 hover:text-zinc-700"
+          onClick={handleCompleteButtonClick}
+          className={`fixed top-5 right-6 z-30 flex h-8 w-8 items-center justify-center rounded-full border ${task.completed
+            ? "border-indigo-700 bg-indigo-700/90 text-white"
+            : "border-zinc-300 bg-white/70 text-zinc-500"
+            }`}
+          aria-label={task.completed ? "未完了にする" : "完了にする"}
+          title={task.completed ? "完了" : "未完了"}
         >
-          一覧へ戻る
+          <Check size={16} />
         </button>
-        {taskId && (
-          <button
-            type="button"
-            onClick={handleCompleteButtonClick}
-            className={`rounded-full border p-2 transition ${task.completed
-              ? "border-indigo-700 bg-indigo-700 text-white"
-              : "border-zinc-300 bg-white text-zinc-500"
-              }`}
-            aria-label={task.completed ? "未完了にする" : "完了にする"}
-            title={task.completed ? "完了" : "未完了"}
-          >
-            <Check size={20} />
-          </button>
-        )}
-      </div>
+      )}
 
       <div className="mb-4 text-xs text-zinc-500">
         <span>作成日: {createdText}</span>

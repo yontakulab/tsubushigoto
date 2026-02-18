@@ -485,7 +485,7 @@ export default function Home() {
   }, [isInitialLoaded]);
 
   useEffect(() => {
-    if (!isInitialLoaded) {
+    if (!isInitialLoaded || !isListVisible) {
       return;
     }
 
@@ -497,7 +497,7 @@ export default function Home() {
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: scrollY, behavior: "auto" });
     });
-  }, [isInitialLoaded, tasks.length]);
+  }, [isInitialLoaded, isListVisible, tasks.length]);
 
   useEffect(() => {
     if (toastTimerRef.current !== null) {
