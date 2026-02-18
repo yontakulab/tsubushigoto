@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type TouchEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type TouchEvent } from "react";
 import { Check, Filter, Menu, Plus, RotateCw } from "lucide-react";
 import { createTaskDraft, deleteTaskById, getAllTasks, TaskItem, upsertTask } from "@/lib/tasks-db";
 
@@ -19,7 +19,7 @@ function saveListScrollPosition() {
   window.sessionStorage.setItem(LIST_SCROLL_RESTORE_STORAGE_KEY, "1");
 }
 
-function consumeListScrollPositionToRestore() {
+function getListScrollPositionToRestore() {
   if (typeof window === "undefined") {
     return null;
   }
@@ -29,7 +29,6 @@ function consumeListScrollPositionToRestore() {
     return null;
   }
 
-  window.sessionStorage.removeItem(LIST_SCROLL_RESTORE_STORAGE_KEY);
   const storedValue = window.sessionStorage.getItem(LIST_SCROLL_Y_STORAGE_KEY);
   if (!storedValue) {
     return null;
@@ -41,6 +40,14 @@ function consumeListScrollPositionToRestore() {
   }
 
   return Math.max(0, scrollY);
+}
+
+function clearListScrollRestoreFlag() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.removeItem(LIST_SCROLL_RESTORE_STORAGE_KEY);
 }
 
 function isFilterType(value: string): value is FilterType {
@@ -271,6 +278,7 @@ export default function Home() {
   const [filterType, setFilterType] = useState<FilterType>(getInitialFilterType);
   const [isInitialLoaded, setIsInitialLoaded] = useState(false);
   const [isListVisible, setIsListVisible] = useState(false);
+  const [pendingScrollRestoreY, setPendingScrollRestoreY] = useState<number | null>(() => getListScrollPositionToRestore());
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [isTopMenuOpen, setIsTopMenuOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<TaskItem | null>(null);
@@ -484,20 +492,15 @@ export default function Home() {
     };
   }, [isInitialLoaded]);
 
-  useEffect(() => {
-    if (!isInitialLoaded || !isListVisible) {
+  useLayoutEffect(() => {
+    if (!isInitialLoaded || !isListVisible || pendingScrollRestoreY === null) {
       return;
     }
 
-    const scrollY = consumeListScrollPositionToRestore();
-    if (scrollY === null) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      window.scrollTo({ top: scrollY, behavior: "auto" });
-    });
-  }, [isInitialLoaded, isListVisible, tasks.length]);
+    window.scrollTo({ top: pendingScrollRestoreY, behavior: "auto" });
+    clearListScrollRestoreFlag();
+    setPendingScrollRestoreY(null);
+  }, [isInitialLoaded, isListVisible, pendingScrollRestoreY]);
 
   useEffect(() => {
     if (toastTimerRef.current !== null) {
@@ -550,7 +553,7 @@ export default function Home() {
   };
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl bg-white px-5 py-6 sm:px-8">
+    <main className={`mx-auto min-h-screen w-full max-w-3xl bg-white px-5 py-6 sm:px-8 ${pendingScrollRestoreY === null ? "" : "invisible"}`}>
       <div className="relative mb-0 py-4" role="banner">
         <h1 className="text-xl font-bold tracking-tight text-zinc-900">つぶしごと</h1>
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-px w-screen -translate-x-1/2 bg-zinc-200" />
