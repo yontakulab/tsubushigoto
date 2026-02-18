@@ -2,7 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, ImagePlus, Link2 } from "lucide-react";
+import { Check, ImagePlus, Link2, Trash2 } from "lucide-react";
 import {
   createTaskDraft,
   getTaskById,
@@ -264,27 +264,45 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
         <div className="grid grid-cols-2 gap-3">
           <div className="min-w-0">
             <label className="mb-1 block text-xs text-zinc-500">開始日</label>
-            <div className="min-w-0 overflow-hidden rounded-xl border border-zinc-200 px-3 py-2 focus-within:border-zinc-400">
+            <div className="flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-zinc-200 px-3 py-2 focus-within:border-zinc-400">
               <input
                 type="date"
-                className="block w-full min-w-0 border-0 bg-transparent p-0 text-sm outline-none"
+                className="block min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none"
                 value={task.startDate}
                 onInput={handleDateFieldChange("startDate")}
                 onChange={handleDateFieldChange("startDate")}
               />
+              <button
+                type="button"
+                onClick={() => updateField("startDate", "")}
+                className={`shrink-0 text-zinc-400 ${task.startDate ? "hover:text-zinc-600" : "cursor-default opacity-40"}`}
+                aria-label="開始日をクリア"
+                disabled={!task.startDate}
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
           </div>
 
           <div className="min-w-0">
             <label className="mb-1 block text-xs text-zinc-500">終了日</label>
-            <div className="min-w-0 overflow-hidden rounded-xl border border-zinc-200 px-3 py-2 focus-within:border-zinc-400">
+            <div className="flex min-w-0 items-center gap-2 overflow-hidden rounded-xl border border-zinc-200 px-3 py-2 focus-within:border-zinc-400">
               <input
                 type="date"
-                className="block w-full min-w-0 border-0 bg-transparent p-0 text-sm outline-none"
+                className="block min-w-0 flex-1 border-0 bg-transparent p-0 text-sm outline-none"
                 value={task.endDate}
                 onInput={handleDateFieldChange("endDate")}
                 onChange={handleDateFieldChange("endDate")}
               />
+              <button
+                type="button"
+                onClick={() => updateField("endDate", "")}
+                className={`shrink-0 text-zinc-400 ${task.endDate ? "hover:text-zinc-600" : "cursor-default opacity-40"}`}
+                aria-label="終了日をクリア"
+                disabled={!task.endDate}
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
           </div>
         </div>
