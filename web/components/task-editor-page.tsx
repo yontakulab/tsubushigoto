@@ -200,7 +200,7 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl bg-white px-5 py-5 text-zinc-900 sm:px-8">
+    <main className="mx-auto min-h-screen w-full max-w-3xl overflow-x-hidden bg-white px-5 py-5 text-zinc-900 sm:px-8">
       <header className="mb-4 flex items-center justify-between">
         <Link href="/" className="text-sm text-zinc-500 hover:text-zinc-700">
           一覧へ戻る
@@ -257,8 +257,8 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
+        <div className="flex gap-3">
+          <div className="min-w-0 flex-1">
             <label className="mb-1 block text-xs text-zinc-500">開始日</label>
             <input
               type="date"
@@ -268,7 +268,7 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
             />
           </div>
 
-          <div>
+          <div className="min-w-0 flex-1">
             <label className="mb-1 block text-xs text-zinc-500">終了日</label>
             <input
               type="date"
@@ -309,10 +309,6 @@ export default function TaskEditorPage({ taskId }: TaskEditorPageProps) {
             画像を追加
             <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageFileChange} />
           </label>
-
-          {(task.imageBlobs?.length ?? 0) > 0 && (
-            <p className="mt-2 text-xs text-zinc-500">{task.imageBlobs.length}枚選択中（一覧サムネイルは先頭画像）</p>
-          )}
 
           {previewImageSrcList.length > 0 && (
             <div className="mt-3 space-y-3">
